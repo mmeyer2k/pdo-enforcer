@@ -47,7 +47,7 @@ class SqliGuard extends ServiceProvider
 
             // If being run from commandline, we are always safe, therefore no need to check
             // This block will be triggered during migrations, for instance
-            if (\App::runningInConsole() && $allowUnsafe === null) {
+            if (App::runningInConsole() && $allowUnsafe === null) {
                 return;
             }
 
@@ -70,12 +70,12 @@ class SqliGuard extends ServiceProvider
 
     public static function allowUnsafe(): void
     {
-        \config([self::configString => true]);
+        config([self::configString => true]);
     }
 
     public static function disallowUnsafe(): void
     {
-        \config([self::configString => false]);
+        config([self::configString => false]);
     }
 
     private static function normalize(string $sql): string

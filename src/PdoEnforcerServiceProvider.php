@@ -1,20 +1,14 @@
 <?php
 
-namespace mmeyer2k\sqliguard;
+namespace mmeyer2k\PdoEnforcer;
 
 use Illuminate\Database\Events\StatementPrepared;
 use Illuminate\Mail\Message;
 use Illuminate\Support\ServiceProvider;
 
-class SqliGuard extends ServiceProvider
+class PdoEnforcerServiceProvider extends ServiceProvider
 {
-    private const configString = 'sqliquard.allow_unsafe_mysql';
-
     private const needles = [
-        'information_schema',
-        'benchmark(',
-        'version(',
-        'sleep(',
         '--',
         '0x',
         '#',
@@ -30,7 +24,6 @@ class SqliGuard extends ServiceProvider
      */
     public function boot()
     {
-        //
     }
 
     /**
@@ -43,7 +36,7 @@ class SqliGuard extends ServiceProvider
         // Prevent SQL injection by listening to the PDO statement creation event
         \Event::listen(StatementPrepared::class, function (StatementPrepared $event) {
             // Lowercase the query and remove extra whitespace
-            $allowUnsafe = config(self::configString);
+            $allowUnsafe = config(PdoEnforcer::isUnsafeAllowed());
 
             // If being run from commandline, we are always safe, therefore no need to check
             // This block will be triggered during migrations, for instance
@@ -57,35 +50,30 @@ class SqliGuard extends ServiceProvider
             }
 
             // Normalize query string to prevent tomfoolery
-            $query = self::normalize($event->statement->queryString ?? '');
+            $query = PdoEnforcer::normalizeQuery($event->statement->queryString ?? '');
+
+            // Skip the rest of this function if allowWhen returns true
+            if ($this->allowWhen($query)) {
+                return;
+            }
 
             // Handle queries containing potentially dangerous things
             if (\Str::contains($query, self::needles)) {
-                // Finally, throw exception back to PDO which will become Illuminate\Database\QueryException
-                // To prevent this exception from being thrown, call the SqliMonitor::allowUnsafe() method
-                throw new \Exception("Query contains an invalid character sequence");
+                // Run the customizable event
+                $this->throwError($query);
             }
         });
     }
 
-    public static function allowUnsafe(): void
-    {
-        config([self::configString => true]);
+    public function allowWhen(string $query): bool {
+        // When this function returns TRUE the query will bypass the parameter checking
+        // Returning FALSE (default) will cause the check to be done
+        return false;
     }
 
-    public static function disallowUnsafe(): void
+    public function throwError(string $query)
     {
-        config([self::configString => false]);
-    }
-
-    private static function normalize(string $sql): string
-    {
-        $sql = strtolower($sql);
-
-        $sql = preg_replace('/\s+/', ' ', $sql);
-
-        $sql = str_replace(' (', '(', $sql);
-
-        return $sql;
+        // Throw exception back to PDO which will become Illuminate\Database\QueryException
+        throw new \Exception("Query contains an invalid character sequence");
     }
 }

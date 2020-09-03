@@ -1,7 +1,7 @@
 {
-    "name": "mmeyer2k/sqliguard",
+    "name": "mmeyer2k/pdo-enforcer",
     "description": "",
-    "keywords": ["pdo", "laravel", "sqli", "sql injection"],
+    "keywords": ["pdo", "laravel", "sql", "mysql", "sql injection"],
     "license": "MIT",
     "authors": [
         {
@@ -14,7 +14,7 @@
     },
     "autoload": {
         "psr-4": {
-            "mmeyer2k\\sqliguard\\": "src/"
+            "mmeyer2k\\PdoEnforcer\\": "src/"
         }
     },
     "autoload-dev": {
